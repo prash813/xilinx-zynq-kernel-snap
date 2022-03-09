@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2021 Canonical Ltd
+
+name: iotdevice-xilinx-zynq-7000-kernel
+summary: xilinx zynq kernel for snappy
+description: This is a zynq7000 kernel  
+
+grade: stable
+build-base: core20
+confinement: strict
+type: kernel
+adopt-info: kernel
+
+architectures:
+  - build-on:
+      - amd64
+    run-on: armhf
+
+parts:
+  kernel:
+    plugin: x-kernel
+    #source: git://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/focal
+    source: https://github.com/Xilinx/linux-xlnx.git
+    source-type: git
+    source-depth: 1
+    source-branch: xlnx_rebase_v4.14
+    kernel-compiler: arm-linux-gnueabihf-gcc 
+    kernel-with-firmware: false
+    kernel-image-target: uImage
+    kernel-device-trees:
+      - xilinx-zynq-7000-custom
+    kernel-initrd-channel: stable
+    kernel-initrd-compression: gz
+    kernel-compiler-parameters:
+      - LOADADDR=0x00008000
+    kconfigfile: ${SNAPCRAFT_PROJECT_DIR}/config-xilinx-kernel-4.14
+    kconfigflavour: generic
+    kconfigs:
+      # Disable image signing keys
+      - CONFIG_TMPFS_POSIX_ACL=y
+      - CONFIG_IPV6=y
+      # This settings causes an error while building
+      - CONFIG_SYN_COOKIES=y #not included
+      - CONFIG_STRICT_DEVMEM=y
+      - CONFIG_SECCOMP=y
+      - CONFIG_SECCOMP_FILTER=y
+      - CONFIG_CC_STACKPROTECTOR=y
+      - CONFIG_CC_STACKPROTECTOR_STRONG=y
+      - CONFIG_KEYS=y
+      - CONFIG_ENCRYPTED_KEYS=y
+      - CONFIG_SQUASHFS=y
+      - CONFIG_SQUASHFS_XATTR=y  # not included 
+      - CONFIG_SQUASHFS_XZ=y
+      - CONFIG_BLK_DEV_BSG=y
+      - CONFIG_NAMESPACES=y  
+      - CONFIG_NET_NS=y #not included
+      - CONFIG_TMPFS_XATTR=y
+    override-pull: |
+        snapcraftctl pull
+        cp ${SNAPCRAFT_PROJECT_DIR}/apparmor-audit.patch ${SNAPCRAFT_PART_SRC}/
+        git apply apparmor-audit.patch
+        cp ${SNAPCRAFT_PROJECT_DIR}/dtc-source/* ${SNAPCRAFT_PART_SRC}/arch/arm/boot/dts/ 
+        echo "setting version to $(git branch | sed 's/* xlnx_rebase_v//')"
+        snapcraftctl set-version "$(git branch | sed 's/* xlnx_rebase_v//')"
+    override-build: |
+        snapcraftctl build
+        cp ${SNAPCRAFT_PART_BUILD}/arch/arm/boot/uImage ${SNAPCRAFT_PART_INSTALL}/
+        mkdir ${SNAPCRAFT_PART_INSTALL}/firmware
+    override-stage: |    
+        snapcraftctl stage
+        mkimage -A arm -O linux -C none  -T ramdisk  -n 'Ramdisk-Ubuntu-Core' -d initrd.img uinitrd.img
+        mv uinitrd.img initrd.img 
+    stage:
+      - System.map-*
+      - config-*
+      - initrd.img
+      - kernel.img  
+      - dtbs/*
+      - modules
+      - firmware  
+      - -modules/*/build
+      - -modules/*/source
+
+build-packages:
+  - dpkg-dev
+  - libssl-dev
+  - libfdt-dev
+  - cpio
+  - git
+  - device-tree-compiler
+  - libelf-dev
+  - u-boot-tools
+  - gcc-arm-linux-gnueabihf

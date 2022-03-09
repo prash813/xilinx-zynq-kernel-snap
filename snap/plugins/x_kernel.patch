@@ -1,0 +1,60 @@
+diff --git a/x_kernel.py b/x_kernel.py
+index 7db29d8..db2b5d4 100644
+--- a/x_kernel.py
++++ b/x_kernel.py
+@@ -162,7 +162,7 @@ import sys
+ 
+ from snapcraft import ProjectOptions
+ from typing import Any, Dict, List, Set
+-
++from snapcraft import file_utils
+ from snapcraft.plugins.v2 import PluginV2
+ 
+ _compression_command = {"gz": "gzip", "lz4": "lz4", "xz": "xz"}
+@@ -175,7 +175,7 @@ _ZFS_URL = "https://github.com/openzfs/zfs"
+ default_kernel_image_target = {
+     "amd64": "bzImage",
+     "i386": "bzImage",
+-    "armhf": "zImage",
++    "armhf": "uImage",
+     "arm64": "Image.gz",
+     "powerpc": "uImage",
+     "ppc64el": "vmlinux.strip",
+@@ -204,8 +204,8 @@ required_security = [
+     "SECCOMP_FILTER",
+     "CC_STACKPROTECTOR",
+     "CC_STACKPROTECTOR_STRONG",
+-    "DEBUG_RODATA",
+-    "DEBUG_SET_MODULE_RONX",
++    #"DEBUG_RODATA",
++    #"DEBUG_SET_MODULE_RONX",
+ ]
+ 
+ required_snappy = [
+@@ -215,7 +215,7 @@ required_snappy = [
+     "SQUASHFS",
+     "SQUASHFS_XATTR",
+     "SQUASHFS_XZ",
+-    "DEVPTS_MULTIPLE_INSTANCES",
++    #"DEVPTS_MULTIPLE_INSTANCES",
+ ]
+ 
+ required_systemd = [
+@@ -1102,7 +1102,7 @@ class PluginImpl(PluginV2):
+         # otherwise use defconfig to seed the base config
+         if self.options.kconfigfile:
+             # This file gets modified, no hard links here
+-            file_utils.copy(self.options.kconfigfile, config_path)
++            #prash@canonical file_utils.copy(self.options.kconfigfile, config_path)
+             cmd.extend(
+                 [
+                     " ".join(
+@@ -1175,7 +1175,7 @@ class PluginImpl(PluginV2):
+             ),
+             " ".join(
+                 [
+-                    "mv",
++                    "cp",
+                     "${SNAPCRAFT_PART_BUILD}/.config_snap",
+                     "${SNAPCRAFT_PART_BUILD}/.config",
+                 ]
